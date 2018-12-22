@@ -29,7 +29,7 @@ public:
     Worker(Poco::NotificationQueue &queue) : _queue(queue) {}
     void run() {
         Poco::AutoPtr<Poco::Notification> notification =(_queue.waitDequeueNotification());
-        std::string emailRegex  = "([^ \"'<>:;,\}\{\)\(\\\/]+@[^ \"'<>:;,\}\{\)\(\\\/]+\.[a-zA-Z]+)";
+        std::string emailRegex  = "([^\\W]+@[\\w]+\\.[\\w]+)";
 
         while(notification) {
             TargetUrl *target = dynamic_cast<TargetUrl*>(notification.get());
@@ -51,23 +51,6 @@ private:
 
 int main() {
     Poco::Net::initializeSSL();
-//    std::string emailRegex  = "([^ \"'<>:;,\}\{\)\(\\\/]+@[^ \"'<>:;,\}\{\)\(\\\/]+\.[a-zA-Z]+)";
-//    std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
-
-    //std::string url = "http://www.bekap.com/";
-    //std::string url = "http://www.karyapark.com.tr";
-    //std::string url = "http://www.duk.com.tr";
-//    std::string url = "https://www.isikpeyzaj.com/";
-//    std::string source = Utils::request(url);
-//    std::vector<std::string> s = Utils::findAll(hrefRegex,source);
-//    std::vector<std::string> urls = Utils::fixUrls(s,url);
-//    dump(urls);
-//
-//    std::cout << "##########################"<<std::endl;
-//    std::vector<std::string> ne,data;
-//    Utils::searchInPages(url, ne, emailRegex, data, 1000);
-//    dump(data);
-
 
     // Create logger channel for writing emails
     Poco::SimpleFileChannel *simpleFileChannel = new Poco::SimpleFileChannel("emails.txt");
@@ -79,7 +62,7 @@ int main() {
     while (std::getline(file, str))
     {
         queue.enqueueNotification(new TargetUrl(str));
-        std::cout << str << std::endl;
+        //std::cout << str << std::endl;
     }
 
     const int THREAD_SIZE = 8;
