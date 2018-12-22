@@ -3,12 +3,14 @@
 #include <Poco/Net/NetSSL.h>
 #include "Utils.h"
 
+#include <algorithm>
 void dump(std::vector<std::string> vector) {
+    std::cout << vector.size() << std::endl;
     for(int i=0;i<vector.size(); ++i)
         std::cout << vector.at(i) << std::endl;
 }
 
-std::vector<std::string> getMails(std::string url, std::vector<std::string> &searchedList,std::vector<std::string> &)
+
 
 int main() {
     Poco::Net::initializeSSL();
@@ -16,15 +18,18 @@ int main() {
     std::string emailRegex  = "([\w\.-]+@[\w\.-]+)";
     std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
 
-    std::string url = "http://www.bekap.com/";
+    //std::string url = "http://www.bekap.com/";
     //std::string url = "http://www.karyapark.com.tr";
+    std::string url = "https://www.isikpeyzaj.com/";
     std::string source = Utils::request(url);
     std::vector<std::string> s = Utils::findAll(hrefRegex,source);
-
-
     std::vector<std::string> urls = Utils::fixUrls(s,url);
     dump(urls);
 
+    std::cout << "##########################"<<std::endl;
+    std::vector<std::string> ne;
+    Utils::getAllPages(url,ne);
+    dump(ne);
 
     Poco::Net::uninitializeSSL();
     return 0;

@@ -102,7 +102,7 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
         unsigned long lastDot = uri.getPath().find_last_of('.');
         if(lastDot != std::string::npos) {
             std::string ext = uri.getPath().substr(lastDot, uri.getPath().size());
-            if(ext == ".css" || ext == ".js" || ext == ".pdf" || ext == ".exe") continue;
+            if(ext == ".css" || ext == ".js" || ext == ".pdf" || ext == ".exe" || ext == ".png" || ext == ".jpg") continue;
         }
 
         Poco::URI n(baseURI,uri.getPath());
@@ -114,4 +114,26 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
             uniqUrls.push_back(n.toString());
     }
     return uniqUrls;
+}
+
+void Utils::getAllPages(std::string url, std::vector<std::string> &nextList, unsigned long limit) {
+    std::string source = Utils::request(url);
+    std::vector<std::string>::iterator it;
+    nextList.push_back(url);
+
+    std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
+    std::vector<std::string> list = Utils::fixUrls(Utils::findAll(hrefRegex,source),url);
+    //dump(list);
+    for(unsigned long i = 0;i < list.size() && nextList.size() <= limit ;i++) {
+
+        std::string next_url = list.at(i);
+        //std::cout << next_url << list.size() << std::endl;
+
+        it = std::find(nextList.begin(),nextList.end(),next_url);
+
+        if(it == nextList.end()) {
+            getAllPages(next_url,nextList);
+        }
+
+    }
 }

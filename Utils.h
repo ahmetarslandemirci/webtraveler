@@ -8,6 +8,7 @@ public:
     static std::vector<std::string> findAll(const std::string &regex, const std::string &source);
     static std::string request(const std::string &url);
     static std::vector<std::string> fixUrls(const std::vector<std::string> &urlList, const std::string &baseUrl);
+    static void getAllPages(std::string url, std::vector<std::string> &nextList, unsigned long limit = 100);
 };
 
 
