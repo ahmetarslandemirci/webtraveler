@@ -28,7 +28,7 @@ class Worker : public Poco::Runnable {
 public:
     explicit Worker(Poco::NotificationQueue &queue) : _queue(queue) {}
     void run() {
-        Poco::AutoPtr<Poco::Notification> notification =(_queue.waitDequeueNotification());
+        Poco::AutoPtr<Poco::Notification> notification = (_queue.dequeueNotification());
         std::string emailRegex  = "((?!\\S*\\.(?:jpg|png|gif|bmp)(?:[\\s\\n\\r]|$))[\\w._+-]{2,}@[\\w.-]{3,65}\\.[\\w]{2,4})";
 
         while(notification) {
@@ -40,6 +40,7 @@ public:
                 for(int i=0;i<mails.size();++i){
                     Poco::Logger::get("Emails").information(mails.at(i));
                 }
+                target->release();
                 //delete target;
             }
             notification = _queue.waitDequeueNotification();
