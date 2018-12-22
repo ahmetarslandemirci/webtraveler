@@ -36,29 +36,15 @@ public:
             if(target) {
                 std::vector<std::string> mails;
                 std::cout << target->url << std::endl;
-                Utils::searchInPages(target->url, emailRegex, mails, 100);
+                Utils::searchInPages(target->url, emailRegex, mails, 50);
                 for(int i=0;i<mails.size();++i){
                     Poco::Logger::get("Emails").information(mails.at(i));
                 }
                 //delete target;
             }
             notification = _queue.waitDequeueNotification();
+            Poco::Thread::sleep(10);
         }
-    }
-private:
-    Poco::NotificationQueue &_queue;
-};
-
-class Publisher : public Poco::Runnable {
-public:
-    explicit Publisher(Poco::NotificationQueue &queue) : _queue(queue) {}
-    void run() {
-        std::ifstream file("websites");
-        std::string str;
-        while (std::getline(file, str)) {
-            _queue.enqueueNotification(new TargetUrl(str));
-        }
-
     }
 private:
     Poco::NotificationQueue &_queue;
@@ -69,16 +55,20 @@ int main() {
     Poco::Net::initializeSSL();
 
     // Create logger channel for writing emails
-    Poco::SimpleFileChannel *simpleFileChannel = new Poco::SimpleFileChannel("emails2.txt");
+    Poco::SimpleFileChannel *simpleFileChannel = new Poco::SimpleFileChannel("emails.txt");
     Poco::Logger::create("Emails",simpleFileChannel);
     Poco::NotificationQueue queue;
 
     const int THREAD_SIZE = 12;
 
     Poco::ThreadPool &pool = Poco::ThreadPool::defaultPool();
+
     std::vector<Worker*> workers;
-    Publisher *publisher = new Publisher(queue);
-    pool.start(*publisher);
+    std::ifstream file("websites");
+    std::string str;
+    while (std::getline(file, str)) {
+        queue.enqueueNotification(new TargetUrl(str));
+    }
 
     for(int i=0;i<THREAD_SIZE;++i) {
         workers.push_back(new Worker(queue));
