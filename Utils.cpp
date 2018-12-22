@@ -181,7 +181,7 @@ void Utils::searchInPages(std::string &url, const std::string &regex, std::vecto
         std::vector<std::string> links = Utils::fixUrls(Utils::findAll(hrefRegex, source),url);
         visited.push_back(url);
         //std::cout << "Lnk size: " << links.size() << std::endl;
-        for(int i = 0; i < links.size() ;i++) {
+        for(int i = 0; i < links.size() && queue.size() <= limit ;i++) {
 
             it_que = std::find(queue.begin(), queue.end(), links.at(i));
             it_vis = std::find(visited.begin(), visited.end(), links.at(i));
