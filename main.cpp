@@ -26,7 +26,7 @@ public :
 
 class Worker : public Poco::Runnable {
 public:
-    Worker(Poco::NotificationQueue &queue) : _queue(queue) {}
+    explicit Worker(Poco::NotificationQueue &queue) : _queue(queue) {}
     void run() {
         Poco::AutoPtr<Poco::Notification> notification =(_queue.waitDequeueNotification());
         std::string emailRegex  = "((?!\\S*\\.(?:jpg|png|gif|bmp)(?:[\\s\\n\\r]|$))[\\w._+-]{2,}@[\\w.-]{3,65}\\.[\\w]{2,4})";
@@ -34,15 +34,31 @@ public:
         while(notification) {
             TargetUrl *target = dynamic_cast<TargetUrl*>(notification.get());
             if(target) {
-                std::vector<std::string> urls, mails;
-                Utils::searchInPages(target->url, urls, emailRegex, mails, 1000);
+                std::vector<std::string> mails;
+                std::cout << target->url << std::endl;
+                Utils::searchInPages(target->url, emailRegex, mails, 100);
                 for(int i=0;i<mails.size();++i){
                     Poco::Logger::get("Emails").information(mails.at(i));
                 }
-
+                //delete target;
             }
             notification = _queue.waitDequeueNotification();
         }
+    }
+private:
+    Poco::NotificationQueue &_queue;
+};
+
+class Publisher : public Poco::Runnable {
+public:
+    explicit Publisher(Poco::NotificationQueue &queue) : _queue(queue) {}
+    void run() {
+        std::ifstream file("websites");
+        std::string str;
+        while (std::getline(file, str)) {
+            _queue.enqueueNotification(new TargetUrl(str));
+        }
+
     }
 private:
     Poco::NotificationQueue &_queue;
@@ -53,28 +69,24 @@ int main() {
     Poco::Net::initializeSSL();
 
     // Create logger channel for writing emails
-    Poco::SimpleFileChannel *simpleFileChannel = new Poco::SimpleFileChannel("emails.txt");
+    Poco::SimpleFileChannel *simpleFileChannel = new Poco::SimpleFileChannel("emails2.txt");
     Poco::Logger::create("Emails",simpleFileChannel);
     Poco::NotificationQueue queue;
 
-    std::ifstream file("websites");
-    std::string str;
-    while (std::getline(file, str))
-    {
-        queue.enqueueNotification(new TargetUrl(str));
-        //std::cout << str << std::endl;
-    }
-
-    const int THREAD_SIZE = 16;
+    const int THREAD_SIZE = 12;
 
     Poco::ThreadPool &pool = Poco::ThreadPool::defaultPool();
     std::vector<Worker*> workers;
+    Publisher *publisher = new Publisher(queue);
+    pool.start(*publisher);
+
     for(int i=0;i<THREAD_SIZE;++i) {
         workers.push_back(new Worker(queue));
     }
     for(int i=0;i<THREAD_SIZE;++i) {
         pool.start(*workers.at(i));
     }
+
     queue.wakeUpAll();
     pool.joinAll();
 
