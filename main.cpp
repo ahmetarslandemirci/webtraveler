@@ -29,7 +29,7 @@ public:
     Worker(Poco::NotificationQueue &queue) : _queue(queue) {}
     void run() {
         Poco::AutoPtr<Poco::Notification> notification =(_queue.waitDequeueNotification());
-        std::string emailRegex  = "([^\\W]+@[\\w]+\\.[\\w]+)";
+        std::string emailRegex  = "((?!\\S*\\.(?:jpg|png|gif|bmp)(?:[\\s\\n\\r]|$))[\\w._+-]{2,}@[\\w.-]{3,65}\\.[\\w]{2,4})";
 
         while(notification) {
             TargetUrl *target = dynamic_cast<TargetUrl*>(notification.get());
@@ -65,7 +65,7 @@ int main() {
         //std::cout << str << std::endl;
     }
 
-    const int THREAD_SIZE = 8;
+    const int THREAD_SIZE = 16;
 
     Poco::ThreadPool &pool = Poco::ThreadPool::defaultPool();
     std::vector<Worker*> workers;
