@@ -15,11 +15,12 @@ void dump(std::vector<std::string> vector) {
 int main() {
     Poco::Net::initializeSSL();
     std::cout << "Hello, World!" << std::endl;
-    std::string emailRegex  = "([\w\.-]+@[\w\.-]+)";
+    std::string emailRegex  = "([^ \"'<>:;,\}\{\)\(\\\/]+@[^ \"'<>:;,\}\{\)\(\\\/]+\.[a-zA-Z]+)";
     std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
 
     //std::string url = "http://www.bekap.com/";
     //std::string url = "http://www.karyapark.com.tr";
+    //std::string url = "http://www.duk.com.tr";
     std::string url = "https://www.isikpeyzaj.com/";
     std::string source = Utils::request(url);
     std::vector<std::string> s = Utils::findAll(hrefRegex,source);
@@ -27,9 +28,9 @@ int main() {
     dump(urls);
 
     std::cout << "##########################"<<std::endl;
-    std::vector<std::string> ne;
-    Utils::getAllPages(url,ne);
-    dump(ne);
+    std::vector<std::string> ne,data;
+    Utils::searchInPages(url, ne, emailRegex, data, 1000);
+    dump(data);
 
     Poco::Net::uninitializeSSL();
     return 0;

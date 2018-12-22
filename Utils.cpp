@@ -116,9 +116,17 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
     return uniqUrls;
 }
 
-void Utils::getAllPages(std::string url, std::vector<std::string> &nextList, unsigned long limit) {
+void Utils::searchInPages(const std::string &url, std::vector<std::string> &nextList, const std::string &regex, std::vector<std::string> &data, unsigned long limit) {
     std::string source = Utils::request(url);
+    std::vector<std::string> founded = Utils::findAll(regex, source);
     std::vector<std::string>::iterator it;
+    //std::cout << founded.size() << std::endl;
+    for(unsigned long i = 0;i<founded.size();++i) {
+        it = std::find(data.begin(),data.end(),founded.at(i));
+        if(it == data.end()) {
+            data.push_back(founded.at(i));
+        }
+    }
     nextList.push_back(url);
 
     std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
@@ -132,7 +140,7 @@ void Utils::getAllPages(std::string url, std::vector<std::string> &nextList, uns
         it = std::find(nextList.begin(),nextList.end(),next_url);
 
         if(it == nextList.end()) {
-            getAllPages(next_url,nextList);
+            searchInPages(next_url, nextList, regex, data);
         }
 
     }
