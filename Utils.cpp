@@ -103,7 +103,7 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
         if(lastDot != std::string::npos) {
             std::string ext = uri.getPath().substr(lastDot, uri.getPath().size());
             std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-            if(ext == ".css" || ext == ".js" || ext == ".pdf" || ext == ".exe" || ext == ".png" || ext == ".jpg") continue;
+            if(ext == ".css" || ext == ".js" || ext == ".pdf" || ext == ".exe" || ext == ".png" || ext == ".jpg" || ext == ".svg" || ext == ".ico") continue;
         }
 
         Poco::URI n(baseURI,uri.getPath());
@@ -131,7 +131,7 @@ void Utils::searchInPages(const std::string &url, std::vector<std::string> &next
         }
     }
 
-    //std::cout << url << std::endl;
+    std::cout << url << std::endl;
     nextList.push_back(url);
 
     std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
@@ -150,3 +150,49 @@ void Utils::searchInPages(const std::string &url, std::vector<std::string> &next
 
     }
 }
+
+void Utils::searchInPages(const std::string &url, const std::string &regex, std::vector<std::string> &data, unsigned long limit) {
+    std::deque<std::string> queue,visited;
+    queue.push_back(url);
+
+    std::deque<std::string>::iterator it_que,it_vis;
+    std::vector<std::string>::iterator it;
+
+    unsigned long visitedPageCount = 0;
+    while(!queue.empty() && visitedPageCount < limit) {
+        std::string url = queue.front();
+        queue.pop_front();
+
+        std::cout << "URL => " << url << std::endl;
+        std::string source = Utils::request(url);
+
+        // Search for regex data
+        //std::cout << source << std::endl;
+        std::vector<std::string> founded = Utils::findAll(regex, source);
+        std::cout << queue.size() << " : " << visited.size() << std::endl;
+        for(unsigned long i = 0;i<founded.size();++i) {
+            it = std::find(data.begin(),data.end(),founded.at(i));
+            if(it == data.end()) {
+                //std::transform(founded.at(i).begin(),founded.at(i).end(),founded.at(i).begin(),::tolower);
+                data.push_back(founded.at(i));
+            }
+        }
+
+        std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
+        std::vector<std::string> links = Utils::fixUrls(Utils::findAll(hrefRegex, source),url);
+        visited.push_back(url);
+        //std::cout << "Lnk size: " << links.size() << std::endl;
+        for(int i = 0; i<links.size() ;i++) {
+
+            it_que = std::find(queue.begin(), queue.end(), links.at(i));
+            it_vis = std::find(visited.begin(), visited.end(), links.at(i));
+            if(it_que == queue.end() && it_vis == visited.end()) {
+                queue.push_back(links.at(i));
+            }
+        }
+
+        visitedPageCount+=1;
+    }
+}
+
+//void Utils::bfs(std::queue<std::string> &queue,)
