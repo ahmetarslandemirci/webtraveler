@@ -102,6 +102,7 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
         unsigned long lastDot = uri.getPath().find_last_of('.');
         if(lastDot != std::string::npos) {
             std::string ext = uri.getPath().substr(lastDot, uri.getPath().size());
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
             if(ext == ".css" || ext == ".js" || ext == ".pdf" || ext == ".exe" || ext == ".png" || ext == ".jpg") continue;
         }
 
@@ -120,13 +121,17 @@ void Utils::searchInPages(const std::string &url, std::vector<std::string> &next
     std::string source = Utils::request(url);
     std::vector<std::string> founded = Utils::findAll(regex, source);
     std::vector<std::string>::iterator it;
+
     //std::cout << founded.size() << std::endl;
     for(unsigned long i = 0;i<founded.size();++i) {
         it = std::find(data.begin(),data.end(),founded.at(i));
         if(it == data.end()) {
+            //std::transform(founded.at(i).begin(),founded.at(i).end(),founded.at(i).begin(),::tolower);
             data.push_back(founded.at(i));
         }
     }
+
+    //std::cout << url << std::endl;
     nextList.push_back(url);
 
     std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
