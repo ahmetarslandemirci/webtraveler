@@ -28,7 +28,7 @@ class Worker : public Poco::Runnable {
 public:
     explicit Worker(Poco::NotificationQueue &queue) : _queue(queue) {}
     void run() {
-        Poco::AutoPtr<Poco::Notification> notification = _queue.waitDequeueNotification();
+        Poco::Notification::Ptr notification = _queue.waitDequeueNotification();
         std::string emailRegex  = "((?!\\S*\\.(?:jpg|png|gif|bmp)(?:[\\s\\n\\r]|$))[\\w._+-]{2,}@[\\w.-]{3,65}\\.[\\w]{2,4})";
 
         while(notification) {
@@ -37,15 +37,16 @@ public:
                 std::vector<std::string> mails;
                 //std::cout << target->url << std::endl;
                 try {
-                    Utils::searchInPages(target->url, emailRegex, mails, 50);
-                    for (int i = 0; i < mails.size(); ++i) {
-                        Poco::Logger::get("Emails").information(mails.at(i));
-                    }
+                    Utils::searchInPages(target->url, emailRegex, mails, 100);
                 } catch (Poco::Exception &e) {
-
+                    Poco::Logger::get("errors").error(target->url + " -- " + e.what());
+                }
+                for (int i = 0; i < mails.size(); ++i) {
+                    Poco::Logger::get("Emails").information(mails.at(i));
                 }
                 target->release();
             }
+
             notification = _queue.dequeueNotification();
         }
     }
@@ -60,6 +61,9 @@ int main() {
     // Create logger channel for writing emails
     Poco::SimpleFileChannel *simpleFileChannel = new Poco::SimpleFileChannel("emails.txt");
     Poco::Logger::create("Emails",simpleFileChannel);
+
+    Poco::SimpleFileChannel *logFileChannel = new Poco::SimpleFileChannel("errors.log");
+    Poco::Logger::create("errors",logFileChannel);
     Poco::NotificationQueue queue;
 
     const int THREAD_SIZE = 16;
