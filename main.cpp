@@ -28,23 +28,25 @@ class Worker : public Poco::Runnable {
 public:
     explicit Worker(Poco::NotificationQueue &queue) : _queue(queue) {}
     void run() {
-        Poco::AutoPtr<Poco::Notification> notification = (_queue.dequeueNotification());
+        Poco::AutoPtr<Poco::Notification> notification = _queue.waitDequeueNotification();
         std::string emailRegex  = "((?!\\S*\\.(?:jpg|png|gif|bmp)(?:[\\s\\n\\r]|$))[\\w._+-]{2,}@[\\w.-]{3,65}\\.[\\w]{2,4})";
 
         while(notification) {
             TargetUrl *target = dynamic_cast<TargetUrl*>(notification.get());
             if(target) {
                 std::vector<std::string> mails;
-                std::cout << target->url << std::endl;
-                Utils::searchInPages(target->url, emailRegex, mails, 50);
-                for(int i=0;i<mails.size();++i){
-                    Poco::Logger::get("Emails").information(mails.at(i));
+                //std::cout << target->url << std::endl;
+                try {
+                    Utils::searchInPages(target->url, emailRegex, mails, 50);
+                    for (int i = 0; i < mails.size(); ++i) {
+                        Poco::Logger::get("Emails").information(mails.at(i));
+                    }
+                } catch (Poco::Exception &e) {
+
                 }
                 target->release();
-                //delete target;
             }
-            notification = _queue.waitDequeueNotification();
-            Poco::Thread::sleep(10);
+            notification = _queue.dequeueNotification();
         }
     }
 private:
@@ -60,7 +62,7 @@ int main() {
     Poco::Logger::create("Emails",simpleFileChannel);
     Poco::NotificationQueue queue;
 
-    const int THREAD_SIZE = 12;
+    const int THREAD_SIZE = 16;
 
     Poco::ThreadPool &pool = Poco::ThreadPool::defaultPool();
 
@@ -70,6 +72,8 @@ int main() {
     while (std::getline(file, str)) {
         queue.enqueueNotification(new TargetUrl(str));
     }
+
+    std::cout << "Queue size: " << queue.size() << std::endl;
 
     for(int i=0;i<THREAD_SIZE;++i) {
         workers.push_back(new Worker(queue));
