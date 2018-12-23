@@ -78,7 +78,7 @@ std::string Utils::request(std::string &url) {
     }
 
     if(response.getStatus() > 300 && response.getStatus() < 310) {
-        std::cout << "Loc:" << response.get("Location") << std::endl;
+        //std::cout << "Loc:" << response.get("Location") << std::endl;
         url = response.get("Location");
         return Utils::request(url);
     }
@@ -131,7 +131,7 @@ void Utils::searchInPages(std::string &url, std::vector<std::string> &nextList, 
         }
     }
 
-    std::cout << url << std::endl;
+    //std::cout << url << std::endl;
     nextList.push_back(url);
 
     std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
@@ -168,7 +168,7 @@ void Utils::searchInPages(std::string &url, const std::string &regex, std::vecto
         // Search for regex data
         //std::cout << "s:" << source << std::endl;
         std::vector<std::string> founded = Utils::findAll(regex, source);
-        std::cout << queue.size() << " : " << visited.size() << std::endl;
+        //std::cout << queue.size() << " : " << visited.size() << std::endl;
         for(unsigned long i = 0;i<founded.size();++i) {
             it = std::find(data.begin(),data.end(),founded.at(i));
             if(it == data.end()) {
@@ -181,8 +181,7 @@ void Utils::searchInPages(std::string &url, const std::string &regex, std::vecto
         std::vector<std::string> links = Utils::fixUrls(Utils::findAll(hrefRegex, source),url);
         visited.push_back(url);
         //std::cout << "Lnk size: " << links.size() << std::endl;
-        for(int i = 0; i < links.size() && queue.size() <= limit ;i++) {
-
+        for(int i = 0; i < links.size() && queue.size()+visited.size() <= limit ;i++) {
             it_que = std::find(queue.begin(), queue.end(), links.at(i));
             it_vis = std::find(visited.begin(), visited.end(), links.at(i));
             if(it_que == queue.end() && it_vis == visited.end()) {
