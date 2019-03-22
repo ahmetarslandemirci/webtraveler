@@ -12,11 +12,6 @@
 #include <Poco/File.h>
 #include <fstream>
 
-void dump(std::vector<std::string> vector) {
-    std::cout << vector.size() << std::endl;
-    for(int i=0;i<vector.size(); ++i)
-        std::cout << vector.at(i) << std::endl;
-}
 
 class TargetUrl: public Poco::Notification {
 public :
@@ -35,7 +30,6 @@ public:
             TargetUrl *target = dynamic_cast<TargetUrl*>(notification.get());
             if(target) {
                 std::vector<std::string> mails;
-                //std::cout << target->url << std::endl;
                 try {
                     Utils::searchInPages(target->url, emailRegex, mails, 100);
                 } catch (Poco::Exception &e) {
@@ -50,6 +44,7 @@ public:
 
             }
             notification->release();
+            if(_queue.empty()) break;
 
             notification = _queue.waitDequeueNotification();
         }
@@ -80,10 +75,10 @@ int main(int argc, char *argv[]) {
     Poco::Logger::create("errors",logFileChannel);
     Poco::NotificationQueue queue;
 
-    const int THREAD_SIZE = 32;
+    const int THREAD_SIZE = 100;
 
-    Poco::ThreadPool pool(16);
-    pool.addCapacity(32);
+    Poco::ThreadPool pool(THREAD_SIZE,THREAD_SIZE,60);
+    pool.addCapacity(THREAD_SIZE);
     
     std::vector<Worker*> workers;
     std::ifstream file(websiteFilename.c_str());
@@ -108,7 +103,8 @@ int main(int argc, char *argv[]) {
 
     while(!queue.empty())
         Poco::Thread::sleep(100);
-    
+    Poco::Thread::sleep(1000);
+
     queue.wakeUpAll();
     pool.joinAll();
 
