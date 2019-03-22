@@ -31,7 +31,7 @@ public:
             if(target) {
                 std::vector<std::string> mails;
                 try {
-                    Utils::searchInPages(target->url, emailRegex, mails, 100);
+                    Utils::searchInPages(target->url, emailRegex, mails, 200);
                 } catch (Poco::Exception &e) {
                     Poco::Logger::get("errors").error(target->url + " -- " + e.what());
                 }
@@ -88,9 +88,8 @@ int main(int argc, char *argv[]) {
     }
 
     std::string str;
-    while (std::getline(file, str)) {
+    while (std::getline(file, str))
         queue.enqueueNotification(new TargetUrl(str));
-    }
 
     std::cout << "Queue size: " << queue.size() << std::endl;
 

@@ -186,16 +186,15 @@ void Utils::searchInPages(std::string &url, const std::string &regex, std::vecto
         std::string url = queue.front();
         queue.pop_front();
 
-        //std::cout << "URL => " << url << std::endl;
         std::string source = Utils::request(url);
 
         // Search for regex data
         std::vector<std::string> founded = Utils::findAll(regex, source);
         for(unsigned long i = 0;i<founded.size();++i) {
             it = std::find(data.begin(),data.end(),founded.at(i));
-            if(it == data.end()) {
+            if(it == data.end())
                 data.push_back(founded.at(i));
-            }
+
         }
 
         std::string hrefRegex   = "href[ ]*=[ ]*[\"'<>]?([^\"';<>]+)";
