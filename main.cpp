@@ -29,9 +29,9 @@ public:
     explicit Worker(Poco::NotificationQueue &queue) : _queue(queue) {}
     void run() {
         Poco::Notification::Ptr notification = _queue.waitDequeueNotification();
-        std::string emailRegex  = "((?!\\S*\\.(?:jpg|png|gif|bmp)(?:[\\s\\n\\r]|$))[\\w._+-]{2,}@[\\w.-]{3,65}\\.[\\w]{2,4})";
-
+        std::string emailRegex  = "([\\w-]+(?:\\.[\\w-]+)*@(?:[\\w-]+\\.)+[a-zA-Z]{2,7})";
         while(notification) {
+            std::cout << _queue.size() << std::endl;
             TargetUrl *target = dynamic_cast<TargetUrl*>(notification.get());
             if(target) {
                 std::vector<std::string> mails;
@@ -41,13 +41,17 @@ public:
                 } catch (Poco::Exception &e) {
                     Poco::Logger::get("errors").error(target->url + " -- " + e.what());
                 }
+                catch( std::exception &e) {
+
+                }
                 for (int i = 0; i < mails.size(); ++i) {
                     Poco::Logger::get("Emails").information(mails.at(i));
                 }
-                target->release();
-            }
 
-            notification = _queue.dequeueNotification();
+            }
+            notification->release();
+
+            notification = _queue.waitDequeueNotification();
         }
     }
 private:
@@ -55,23 +59,39 @@ private:
 };
 
 
-int main() {
+int main(int argc, char *argv[]) {
+
+    if(argc != 3) {
+        std::cout << "Usage: webtraveler fromWebsitesFile toEmailsFile" << std::endl;
+        std::cout << "fromWebsitesFile: From read filename for websites" << std::endl;
+        std::cout << "toEmailsFile: To write filename for founded emails" << std::endl;
+        return 0;
+    }
+    std::string websiteFilename = argv[1];
+    std::string mailsFilename = argv[2];
+
     Poco::Net::initializeSSL();
 
     // Create logger channel for writing emails
-    Poco::SimpleFileChannel *simpleFileChannel = new Poco::SimpleFileChannel("emails.txt");
+    Poco::SimpleFileChannel *simpleFileChannel = new Poco::SimpleFileChannel(mailsFilename);
     Poco::Logger::create("Emails",simpleFileChannel);
 
     Poco::SimpleFileChannel *logFileChannel = new Poco::SimpleFileChannel("errors.log");
     Poco::Logger::create("errors",logFileChannel);
     Poco::NotificationQueue queue;
 
-    const int THREAD_SIZE = 16;
+    const int THREAD_SIZE = 32;
 
-    Poco::ThreadPool &pool = Poco::ThreadPool::defaultPool();
-
+    Poco::ThreadPool pool(16);
+    pool.addCapacity(32);
+    
     std::vector<Worker*> workers;
-    std::ifstream file("websites");
+    std::ifstream file(websiteFilename.c_str());
+    if(file.fail()) {
+        std::cout << "There is not such a file: " << websiteFilename << std::endl;
+        return 0;
+    }
+
     std::string str;
     while (std::getline(file, str)) {
         queue.enqueueNotification(new TargetUrl(str));
@@ -86,6 +106,9 @@ int main() {
         pool.start(*workers.at(i));
     }
 
+    while(!queue.empty())
+        Poco::Thread::sleep(100);
+    
     queue.wakeUpAll();
     pool.joinAll();
 

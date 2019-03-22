@@ -12,6 +12,9 @@
 #include <sstream>
 #include <iostream>
 #include <algorithm>
+#include <Poco/TextConverter.h>
+#include <Poco/Latin1Encoding.h>
+#include <Poco/UTF8Encoding.h>
 
 // Regex ust contain one group ex: asd([0-9]+)dsa
 std::vector<std::string> Utils::findAll(const std::string &regex, const std::string &source) {
@@ -23,8 +26,11 @@ std::vector<std::string> Utils::findAll(const std::string &regex, const std::str
     while(true) {
         try {
             numberOf = expr.split(source, offset, firstVector);
-        } catch(Poco::Exception &e) {
+        } catch(Poco::Exception e) {
             std::cout << e.what() << std::endl;
+            break;
+        }
+        catch( std::exception e) {
             break;
         }
         if(numberOf == 0) break;
@@ -39,17 +45,17 @@ std::vector<std::string> Utils::findAll(const std::string &regex, const std::str
     return foundedVector;
 }
 
-std::string Utils::request(std::string &url) {
+std::string Utils::request(std::string &url, int maxRedirect) {
+
     Poco::URI uri(url);
     std::string path(uri.getPathAndQuery());
     if (path.empty()) path = "/";
-    //std::cout <<"Host:" << uri.getHost() << std::endl;
+    std::cout <<"Host:" << uri.getPathAndQuery() << std::endl;
     Poco::Net::HTTPResponse response;
     Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, path, Poco::Net::HTTPMessage::HTTP_1_1);
-    request.add("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0");
-    //request.add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-    std::ostringstream ss;
+    request.add("User-Agent", "Mozilla/5.0 (X11; ArchLinux; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0");
 
+    std::ostringstream ss;
     if(uri.getScheme() == "http") {
         Poco::Net::HTTPClientSession session(uri.getHost(), uri.getPort());
         try {
@@ -61,6 +67,7 @@ std::string Utils::request(std::string &url) {
         }
         std::istream& s = session.receiveResponse(response);
         ss << s.rdbuf();
+        s.clear();
     }
     else if(uri.getScheme() == "https") {
         Poco::Net::Context::Ptr pContext = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_NONE);
@@ -74,13 +81,17 @@ std::string Utils::request(std::string &url) {
         }
         std::istream& s = session.receiveResponse(response);
         ss << s.rdbuf();
+        s.clear();
         //std::cout << "Here..."<< std::endl;
     }
 
-    if(response.getStatus() > 300 && response.getStatus() < 310) {
-        //std::cout << "Loc:" << response.get("Location") << std::endl;
-        url = response.get("Location");
-        return Utils::request(url);
+    if(response.getStatus() == 301) {
+        std::cout << "Loc:" << response.get("Location") << std::endl;
+        if(maxRedirect == 0) return "";
+        try {
+            url = response.get("Location");
+            return Utils::request(url, --maxRedirect);
+        } catch(Poco::Exception e) {return "";}
     }
     //std::cout << "hOLLAA"<< std::endl;
     return ss.str();
@@ -166,18 +177,15 @@ void Utils::searchInPages(std::string &url, const std::string &regex, std::vecto
         std::string source = Utils::request(url);
 
         // Search for regex data
-        //std::cout << "s:" << source << std::endl;
         std::vector<std::string> founded = Utils::findAll(regex, source);
-        //std::cout << queue.size() << " : " << visited.size() << std::endl;
         for(unsigned long i = 0;i<founded.size();++i) {
             it = std::find(data.begin(),data.end(),founded.at(i));
             if(it == data.end()) {
-                //std::transform(founded.at(i).begin(),founded.at(i).end(),founded.at(i).begin(),::tolower);
                 data.push_back(founded.at(i));
             }
         }
 
-        std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
+        std::string hrefRegex   = "href[ ]*=[ ]*[\"'<>]?([^\"';<>]+)";
         std::vector<std::string> links = Utils::fixUrls(Utils::findAll(hrefRegex, source),url);
         visited.push_back(url);
         //std::cout << "Lnk size: " << links.size() << std::endl;
