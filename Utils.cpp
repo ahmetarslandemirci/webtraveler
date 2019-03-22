@@ -50,7 +50,7 @@ std::string Utils::request(std::string &url, int maxRedirect) {
     Poco::URI uri(url);
     std::string path(uri.getPathAndQuery());
     if (path.empty()) path = "/";
-    std::cout <<"Host:" << uri.getPathAndQuery() << std::endl;
+    std::cout << "Request: " << url << std::endl;
     Poco::Net::HTTPResponse response;
     Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, path, Poco::Net::HTTPMessage::HTTP_1_1);
     request.add("User-Agent", "Mozilla/5.0 (X11; ArchLinux; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0");
@@ -97,16 +97,30 @@ std::string Utils::request(std::string &url, int maxRedirect) {
     return ss.str();
 }
 
-std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList, const std::string &site) {
-    Poco::URI baseURI(site);
-    std::string baseUrl = baseURI.getHost();
+std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList, const std::string &baseUrl) {
+    Poco::URI baseUri(baseUrl);
+    std::string base = baseUri.getHost();
     std::vector<std::string> uniqUrls;
 
     for(size_t i=0;i<urlList.size();i++) {
-        Poco::URI uri(urlList.at(i));
+        std::string url = urlList.at(i);
+
+        if(url == "#" || (url.size() >= 11 && url.substr(0,11) == "javascript:")) {
+            continue;
+        }
+        else if(url.size() >= 2 && url.at(0) == '/' && url.at(1) == '/') {
+            // write http or https
+        }
+        else if(url.size() >= 1 && url.at(0) == '/') {
+            if ( baseUrl.at(baseUrl.size()-1) == '/')
+                url = baseUrl + url.substr(1, url.size()-1);
+            else
+                url = baseUrl + url;
+        }
+        Poco::URI uri(url);
 
         // skip for different hosts
-        if(!uri.getHost().empty() && baseUrl != uri.getHost())
+        if(baseUri.getHost() != uri.getHost())
             continue;
 
         // Check for file extensions
@@ -114,16 +128,15 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
         if(lastDot != std::string::npos) {
             std::string ext = uri.getPath().substr(lastDot, uri.getPath().size());
             std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-            if(ext == ".css" || ext == ".js" || ext == ".pdf" || ext == ".exe" || ext == ".png" || ext == ".jpg" || ext == ".svg" || ext == ".ico") continue;
+            if(ext == ".css" || ext == ".js" || ext == ".pdf" || ext == ".exe" || ext == ".png"
+                || ext == ".jpg" || ext == ".svg" || ext == ".ico") continue;
         }
-
-        Poco::URI n(baseURI,uri.getPath());
 
         // Check for already added urls
         std::vector<std::string>::iterator it;
-        it = std::find(uniqUrls.begin(),uniqUrls.end(),n.toString());
+        it = std::find(uniqUrls.begin(),uniqUrls.end(),url);
         if(it == uniqUrls.end())
-            uniqUrls.push_back(n.toString());
+            uniqUrls.push_back(url);
     }
     return uniqUrls;
 }
