@@ -12,6 +12,9 @@
 #include <Poco/File.h>
 #include <fstream>
 
+// if llinux
+#include <netdb.h>
+
 
 class TargetUrl: public Poco::Notification {
 public :
@@ -65,7 +68,18 @@ int main(int argc, char *argv[]) {
     std::string websiteFilename = argv[1];
     std::string mailsFilename = argv[2];
 
-    Poco::Net::initializeSSL();
+    // test code
+    hostent *host = NULL;
+    host = gethostbyname("www.ASDASDKNAKSDNKJNnaver.com");
+    if(host == NULL) {
+        std::cout << "HOST is null " << std::endl;
+    }
+    else {
+        std::cout << "host is ok" << std::endl;
+    }
+
+    return 0;
+    //Poco::Net::initializeSSL();
 
     // Create logger channel for writing emails
     Poco::SimpleFileChannel *simpleFileChannel = new Poco::SimpleFileChannel(mailsFilename);
@@ -108,6 +122,6 @@ int main(int argc, char *argv[]) {
     pool.joinAll();
 
 
-    Poco::Net::uninitializeSSL();
+    //Poco::Net::uninitializeSSL();
     return 0;
 }

@@ -1,5 +1,8 @@
 [requires]
+OpenSSL/1.0.2o@conan/stable
 Poco/1.9.0@pocoproject/stable
+libcurlwrapper/0.0.1@libcurlwrapper/testing
+#gtest/1.8.1@bincrafters/stable
 
 [options]
 Poco:shared=False

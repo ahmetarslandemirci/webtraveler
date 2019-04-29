@@ -15,6 +15,7 @@
 #include <Poco/TextConverter.h>
 #include <Poco/Latin1Encoding.h>
 #include <Poco/UTF8Encoding.h>
+#include <curlwrapper.h>
 
 // Regex ust contain one group ex: asd([0-9]+)dsa
 std::vector<std::string> Utils::findAll(const std::string &regex, const std::string &source) {
@@ -46,55 +47,20 @@ std::vector<std::string> Utils::findAll(const std::string &regex, const std::str
 }
 
 std::string Utils::request(std::string &url, int maxRedirect) {
+    CurlWrapper* curlWrapper = CurlWrapper::create(true);
+    std::cout << "URL: " << url << std::endl;
+    curlWrapper->setOption(CURLOPT_URL,url.c_str());
+    curlWrapper->setOption(CURLOPT_FOLLOWLOCATION, true);
+    curlWrapper->setOption(CURLOPT_TIMEOUT, 10L);
+    curlWrapper->setOption(CURLOPT_SSL_VERIFYHOST, 0L);
+    curlWrapper->setOption(CURLOPT_SSL_VERIFYPEER, 0L);
+    curlWrapper->appendHeader("User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.1 Safari/605.1.15");
+    curlWrapper->appendHeader("Accept-Language: en-US,en;q=0.5");
+    curlWrapper->appendHeader("Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+    std::string source = curlWrapper->exec();
+    delete curlWrapper;
+    return source;
 
-    Poco::URI uri(url);
-    std::string path(uri.getPathAndQuery());
-    if (path.empty()) path = "/";
-    std::cout << "Request: " << url << std::endl;
-    Poco::Net::HTTPResponse response;
-    Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, path, Poco::Net::HTTPMessage::HTTP_1_1);
-    request.add("User-Agent", "Mozilla/5.0 (X11; ArchLinux; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0");
-
-    std::ostringstream ss;
-    if(uri.getScheme() == "http") {
-        Poco::Net::HTTPClientSession session(uri.getHost(), uri.getPort());
-        try {
-            session.sendRequest(request);
-
-        } catch (Poco::Exception &e) {
-            std::cout << e.what() << std::endl;
-            return std::string();
-        }
-        std::istream& s = session.receiveResponse(response);
-        ss << s.rdbuf();
-        s.clear();
-    }
-    else if(uri.getScheme() == "https") {
-        Poco::Net::Context::Ptr pContext = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_NONE);
-        Poco::Net::HTTPSClientSession session(uri.getHost(), uri.getPort(), pContext );
-        try {
-            session.sendRequest(request);
-
-        } catch (Poco::Exception &e) {
-            std::cout << e.what() << std::endl;
-            return std::string();
-        }
-        std::istream& s = session.receiveResponse(response);
-        ss << s.rdbuf();
-        s.clear();
-        //std::cout << "Here..."<< std::endl;
-    }
-
-    if(response.getStatus() == 301) {
-        std::cout << "Loc:" << response.get("Location") << std::endl;
-        if(maxRedirect == 0) return "";
-        try {
-            url = response.get("Location");
-            return Utils::request(url, --maxRedirect);
-        } catch(Poco::Exception e) {return "";}
-    }
-    //std::cout << "hOLLAA"<< std::endl;
-    return ss.str();
 }
 
 std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList, const std::string &baseUrl) {
@@ -104,18 +70,20 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
 
     for(size_t i=0;i<urlList.size();i++) {
         std::string url = urlList.at(i);
+        if(url.substr(0,4) == "http") {
+            if (url == "#" || (url.size() >= 11 && url.substr(0, 11) == "javascript:")) {
+                continue;
+            } else if (url.size() >= 2 && url.at(0) == '/' && url.at(1) == '/') {
+                // write http or https
+            } else if (url.size() >= 1 && url.at(0) == '/') {
+                if (baseUrl.at(baseUrl.size() - 1) == '/')
+                    url = baseUrl + url.substr(1, url.size() - 1);
+                else
+                    url = baseUrl + url;
+            }
+        }
+        else {
 
-        if(url == "#" || (url.size() >= 11 && url.substr(0,11) == "javascript:")) {
-            continue;
-        }
-        else if(url.size() >= 2 && url.at(0) == '/' && url.at(1) == '/') {
-            // write http or https
-        }
-        else if(url.size() >= 1 && url.at(0) == '/') {
-            if ( baseUrl.at(baseUrl.size()-1) == '/')
-                url = baseUrl + url.substr(1, url.size()-1);
-            else
-                url = baseUrl + url;
         }
         Poco::URI uri(url);
 
@@ -206,6 +174,7 @@ void Utils::searchInPages(std::string &url, const std::string &regex, std::vecto
             it_vis = std::find(visited.begin(), visited.end(), links.at(i));
             if(it_que == queue.end() && it_vis == visited.end()) {
                 queue.push_back(links.at(i));
+                //std::cout << links.at(i) << std::endl;
             }
         }
     }
