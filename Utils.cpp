@@ -15,6 +15,7 @@
 #include <Poco/TextConverter.h>
 #include <Poco/Latin1Encoding.h>
 #include <Poco/UTF8Encoding.h>
+#include <curlwrapper.h>
 
 // Regex ust contain one group ex: asd([0-9]+)dsa
 std::vector<std::string> Utils::findAll(const std::string &regex, const std::string &source) {
@@ -47,7 +48,6 @@ std::vector<std::string> Utils::findAll(const std::string &regex, const std::str
 }
 
 std::string Utils::request(std::string &url, int maxRedirect) {
-
     Poco::URI uri(url);
     std::string path(uri.getPathAndQuery());
     if (path.empty()) path = "/";
@@ -112,19 +112,20 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
 
     for(size_t i=0;i<urlList.size();i++) {
         std::string url = urlList.at(i);
-        //std::cout << " fixUrls: " << url << std::endl;
-        if(url == "#" || (url.size() >= 11 && url.substr(0,11) == "javascript:")
-            || (url.size() >= 7 && (url.substr(0, 7) == "mailto:") || url.substr(0,7) == "callto:")) {
-            continue;
+        if(url.substr(0,4) == "http") {
+            if (url == "#" || (url.size() >= 11 && url.substr(0, 11) == "javascript:")) {
+                continue;
+            } else if (url.size() >= 2 && url.at(0) == '/' && url.at(1) == '/') {
+                // write http or https
+            } else if (url.size() >= 1 && url.at(0) == '/') {
+                if (baseUrl.at(baseUrl.size() - 1) == '/')
+                    url = baseUrl + url.substr(1, url.size() - 1);
+                else
+                    url = baseUrl + url;
+            }
         }
-        else if(url.size() >= 2 && url.at(0) == '/' && url.at(1) == '/') {
-            // write http or https
-        }
-        else if(url.size() >= 1 && url.at(0) == '/') {
-            if ( baseUrl.at(baseUrl.size()-1) == '/')
-                url = baseUrl + url.substr(1, url.size()-1);
-            else
-                url = baseUrl + url;
+        else {
+
         }
         else if( (url.at(0) != '/' && url.size()<4) || (url.at(0) != '/' && url.size()>=4 && url.substr(0,4) != "http")) {
             if(baseUrl.at(baseUrl.size()-1) == '/')
@@ -198,6 +199,7 @@ void Utils::searchInPages(const std::string &url, const std::string &regex, std:
             it_vis = std::find(visited.begin(), visited.end(), links.at(i));
             if(it_que == queue.end() && it_vis == visited.end()) {
                 queue.push_back(links.at(i));
+                //std::cout << links.at(i) << std::endl;
             }
         }
     }
