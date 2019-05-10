@@ -31,9 +31,10 @@ public:
             if(target) {
                 std::vector<std::string> mails;
                 try {
-                    Utils::searchInPages(target->url, emailRegex, mails, 200);
+                    if( Utils::request(target->url) != "")
+                        Utils::searchInPages(target->url, emailRegex, mails, 20000);
                 } catch (Poco::Exception &e) {
-                    Poco::Logger::get("errors").error(target->url + " -- " + e.what());
+                    Poco::Logger::get("errors").error(target->url + " -- " + e.what()+"--"+e.displayText());
                 }
                 catch( std::exception &e) {
 
@@ -75,9 +76,9 @@ int main(int argc, char *argv[]) {
     Poco::Logger::create("errors",logFileChannel);
     Poco::NotificationQueue queue;
 
-    const int THREAD_SIZE = 100;
+    const int THREAD_SIZE = 50;
 
-    Poco::ThreadPool pool(THREAD_SIZE,THREAD_SIZE,60);
+    Poco::ThreadPool pool(THREAD_SIZE,THREAD_SIZE,120);
     pool.addCapacity(THREAD_SIZE);
     
     std::vector<Worker*> workers;

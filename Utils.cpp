@@ -35,7 +35,8 @@ std::vector<std::string> Utils::findAll(const std::string &regex, const std::str
         }
         if(numberOf == 0) break;
         foundedVector.push_back(firstVector.at(1));
-
+//        std::cout << "1: "<<firstVector.at(1) << std::endl;
+//        std::cout << "0: "<<firstVector.at(0) << std::endl;
         unsigned long pos = source.find(firstVector.at(0),offset);
 
         if( pos != std::string::npos)
@@ -53,11 +54,18 @@ std::string Utils::request(std::string &url, int maxRedirect) {
     std::cout << "Request: " << url << std::endl;
     Poco::Net::HTTPResponse response;
     Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, path, Poco::Net::HTTPMessage::HTTP_1_1);
-    request.add("User-Agent", "Mozilla/5.0 (X11; ArchLinux; Linux x86_64; rv:64.0) Gecko/20100101 Firefox/64.0");
+
+    request.add("User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.1 Safari/605.1.15");
+    //User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.1 Safari/605.1.15
+    request.add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+    request.add("Accept-Language", "en-US,en;q=0.5");
+    request.setContentType("application/text");
+    request.setKeepAlive(true);
 
     std::ostringstream ss;
     if(uri.getScheme() == "http") {
         Poco::Net::HTTPClientSession session(uri.getHost(), uri.getPort());
+        session.setTimeout(Poco::Timespan(60, 0));
         try {
             session.sendRequest(request);
 
@@ -72,6 +80,8 @@ std::string Utils::request(std::string &url, int maxRedirect) {
     else if(uri.getScheme() == "https") {
         Poco::Net::Context::Ptr pContext = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_NONE);
         Poco::Net::HTTPSClientSession session(uri.getHost(), uri.getPort(), pContext );
+        session.setTimeout(Poco::Timespan(60, 0));
+
         try {
             session.sendRequest(request);
 
@@ -82,7 +92,6 @@ std::string Utils::request(std::string &url, int maxRedirect) {
         std::istream& s = session.receiveResponse(response);
         ss << s.rdbuf();
         s.clear();
-        //std::cout << "Here..."<< std::endl;
     }
 
     if(response.getStatus() == 301) {
@@ -93,7 +102,6 @@ std::string Utils::request(std::string &url, int maxRedirect) {
             return Utils::request(url, --maxRedirect);
         } catch(Poco::Exception e) {return "";}
     }
-    //std::cout << "hOLLAA"<< std::endl;
     return ss.str();
 }
 
@@ -104,8 +112,9 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
 
     for(size_t i=0;i<urlList.size();i++) {
         std::string url = urlList.at(i);
-
-        if(url == "#" || (url.size() >= 11 && url.substr(0,11) == "javascript:")) {
+        //std::cout << " fixUrls: " << url << std::endl;
+        if(url == "#" || (url.size() >= 11 && url.substr(0,11) == "javascript:")
+            || (url.size() >= 7 && (url.substr(0, 7) == "mailto:") || url.substr(0,7) == "callto:")) {
             continue;
         }
         else if(url.size() >= 2 && url.at(0) == '/' && url.at(1) == '/') {
@@ -117,70 +126,53 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
             else
                 url = baseUrl + url;
         }
-        Poco::URI uri(url);
-
-        // skip for different hosts
-        if(baseUri.getHost() != uri.getHost())
-            continue;
-
-        // Check for file extensions
-        unsigned long lastDot = uri.getPath().find_last_of('.');
-        if(lastDot != std::string::npos) {
-            std::string ext = uri.getPath().substr(lastDot, uri.getPath().size());
-            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-            if(ext == ".css" || ext == ".js" || ext == ".pdf" || ext == ".exe" || ext == ".png"
-                || ext == ".jpg" || ext == ".svg" || ext == ".ico") continue;
+        else if( (url.at(0) != '/' && url.size()<4) || (url.at(0) != '/' && url.size()>=4 && url.substr(0,4) != "http")) {
+            if(baseUrl.at(baseUrl.size()-1) == '/')
+                url = baseUrl + url;
+            else
+                url = baseUrl + '/' + url;
         }
+        // tel: callto: mailto: gibi protocollerin parse edilmesi problem yaratıryor
+        //std::cout << " fixUrls: " << url << std::endl;
+        try {
+            Poco::URI uri(url);
 
-        // Check for already added urls
-        std::vector<std::string>::iterator it;
-        it = std::find(uniqUrls.begin(),uniqUrls.end(),url);
-        if(it == uniqUrls.end())
-            uniqUrls.push_back(url);
+
+            // skip for different hosts
+            if (baseUri.getHost() != uri.getHost() && "www."+baseUri.getHost() != uri.getHost() ) {
+                //std::cout << baseUri.getHost() << " - " << uri.getHost()<< std::endl;
+                continue;
+            }
+
+            // Check for file extensions
+            unsigned long lastDot = uri.getPath().find_last_of('.');
+            if (lastDot != std::string::npos) {
+                std::string ext = uri.getPath().substr(lastDot, uri.getPath().size());
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                if (ext == ".css" || ext == ".js" || ext == ".pdf" || ext == ".exe" || ext == ".png"
+                    || ext == ".jpg" || ext == ".svg" || ext == ".ico" || ext == ".doc" || ext == ".xls")
+                    continue;
+            }
+
+            // Check for already added urls
+            std::vector<std::string>::iterator it;
+            it = std::find(uniqUrls.begin(), uniqUrls.end(), url);
+            if (it == uniqUrls.end())
+                uniqUrls.push_back(url);
+        } catch(Poco::Exception e) {
+            continue;
+        }
     }
     return uniqUrls;
 }
 
-void Utils::searchInPages(std::string &url, std::vector<std::string> &nextList, const std::string &regex, std::vector<std::string> &data, unsigned long limit) {
-    std::string source = Utils::request(url);
-    std::vector<std::string> founded = Utils::findAll(regex, source);
-    std::vector<std::string>::iterator it;
-
-    //std::cout << founded.size() << std::endl;
-    for(unsigned long i = 0;i<founded.size();++i) {
-        it = std::find(data.begin(),data.end(),founded.at(i));
-        if(it == data.end()) {
-            //std::transform(founded.at(i).begin(),founded.at(i).end(),founded.at(i).begin(),::tolower);
-            data.push_back(founded.at(i));
-        }
-    }
-
-    //std::cout << url << std::endl;
-    nextList.push_back(url);
-
-    std::string hrefRegex   = "href[ ]*=[ ]*[\"']?([^\"']+)";
-    std::vector<std::string> list = Utils::fixUrls(Utils::findAll(hrefRegex,source),url);
-    //dump(list);
-    for(unsigned long i = 0;i < list.size() && nextList.size() <= limit ;i++) {
-
-        std::string next_url = list.at(i);
-        //std::cout << next_url << list.size() << std::endl;
-
-        it = std::find(nextList.begin(),nextList.end(),next_url);
-
-        if(it == nextList.end()) {
-            searchInPages(next_url, nextList, regex, data);
-        }
-
-    }
-}
-
-void Utils::searchInPages(std::string &url, const std::string &regex, std::vector<std::string> &data, unsigned long limit) {
+void Utils::searchInPages(const std::string &url, const std::string &regex, std::vector<std::string> &data, unsigned long limit) {
     std::deque<std::string> queue,visited;
     queue.push_back(url);
 
     std::deque<std::string>::iterator it_que,it_vis;
     std::vector<std::string>::iterator it;
+    std::string baseUrl = url;
 
     while(!queue.empty() && visited.size() < limit) {
         std::string url = queue.front();
@@ -197,8 +189,8 @@ void Utils::searchInPages(std::string &url, const std::string &regex, std::vecto
 
         }
 
-        std::string hrefRegex   = "href[ ]*=[ ]*[\"'<>]?([^\"';<>]+)";
-        std::vector<std::string> links = Utils::fixUrls(Utils::findAll(hrefRegex, source),url);
+        std::string hrefRegex   = "<a.+href[ ]*=[ ]*[\"'<>]?([^\"';<>]+)";
+        std::vector<std::string> links = Utils::fixUrls(Utils::findAll(hrefRegex, source),baseUrl);
         visited.push_back(url);
         //std::cout << "Lnk size: " << links.size() << std::endl;
         for(int i = 0; i < links.size() && queue.size()+visited.size() <= limit ;i++) {
@@ -209,6 +201,7 @@ void Utils::searchInPages(std::string &url, const std::string &regex, std::vecto
             }
         }
     }
+    std::cout << "\n # Scanned " << visited.size() << " in " << baseUrl << std::endl;
 }
 
 //void Utils::bfs(std::queue<std::string> &queue,)

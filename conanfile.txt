@@ -3,6 +3,7 @@ Poco/1.9.0@pocoproject/stable
 
 [options]
 Poco:shared=False
+Poco:enable_netssl=True
 
 [generators]
 cmake

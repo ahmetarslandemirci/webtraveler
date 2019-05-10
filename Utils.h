@@ -10,9 +10,8 @@ public:
     static std::vector<std::string> findAll(const std::string &regex, const std::string &source);
     static std::string request(std::string &url, int maxRedirect = 3);
     static std::vector<std::string> fixUrls(const std::vector<std::string> &urlList, const std::string &baseUrl);
-    static void searchInPages(std::string &url, std::vector<std::string> &nextList, const std::string &regex, std::vector<std::string> &data, unsigned long limit = 100);
 
-    static void searchInPages(std::string &url, const std::string &regex, std::vector<std::string> &data, unsigned long limit = 100);
+    static void searchInPages(const std::string &url, const std::string &regex, std::vector<std::string> &data, unsigned long limit = 100);
 };
 
 
