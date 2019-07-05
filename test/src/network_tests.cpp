@@ -31,3 +31,15 @@ TEST_F(NetworkTest, GetRedirectedUrlForGoogle) {
 
     ASSERT_STRNE( url.c_str(), "");
 }
+
+TEST_F(NetworkTest, GetNotRedirectedUrlForGoogle) {
+    Network network;
+    std::string target_url = "https://www.google.com";
+
+    std::string url = network.get_redirected_url(target_url);
+
+//    std::cout << "Url: " << target_url << std::endl;
+//    std::cout << "Redirected Url: " << url << std::endl;
+
+    ASSERT_STREQ( url.c_str(), target_url.c_str());
+}
