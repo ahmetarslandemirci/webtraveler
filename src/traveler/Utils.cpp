@@ -29,8 +29,6 @@ std::vector<std::string> Utils::findAll(const std::string &regex, const std::str
         }
         if(numberOf == 0) break;
         foundedVector.push_back(firstVector.at(1));
-//        std::cout << "1: "<<firstVector.at(1) << std::endl;
-//        std::cout << "0: "<<firstVector.at(0) << std::endl;
         unsigned long pos = source.find(firstVector.at(0),offset);
 
         if( pos != std::string::npos)
@@ -45,31 +43,21 @@ std::vector<std::string> Utils::normalizeUrlList(const std::vector<std::string> 
     Poco::URI baseUri(baseUrl);
 
     std::string base = baseUri.getHost();
+
     std::vector<std::string> uniqUrls;
 
     for(int i=0;i<list.size();i++) {
         std::string url = list.at(i);
 
+        url = cleanScheme(url);
+        url = cleanAnchor(url);
+        if(url.empty())
+            continue;
 
-        if(url.substr(0,4) == "http") {
-            if ( (url.size() >= 11 && url.substr(0, 11) == "javascript:")) {
-                continue;
-            } else if (url.size() >= 2 && url.at(0) == '/' && url.at(1) == '/') {
-                // write http or https
-            } else if (url.size() >= 1 && url.at(0) == '/') {
-                if (baseUrl.at(baseUrl.size() - 1) == '/')
-                    url = baseUrl + url.substr(1, url.size() - 1);
-                else
-                    url = baseUrl + url;
-            }
-        }
-
-        // tel: callto: mailto: gibi protocollerin parse edilmesi problem yaratıryor
+        url = cleanProtocolShortcut(url, baseUri.getScheme());
 
         try {
             Poco::URI uri(url);
-
-            // skip for different hosts
 
             // @todo: this must be replaced white list. for example you can check response headers for content type: text
             // Check for file extensions
@@ -78,17 +66,19 @@ std::vector<std::string> Utils::normalizeUrlList(const std::vector<std::string> 
                 std::string ext = uri.getPath().substr(lastDot, uri.getPath().size());
                 std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
                 if (ext == ".css" || ext == ".js" || ext == ".pdf" || ext == ".exe" || ext == ".png"
-                    || ext == ".jpg" || ext == ".svg" || ext == ".ico" || ext == ".doc" || ext == ".xls")
+                    || ext == ".jpg" || ext == ".svg" || ext == ".ico" || ext == ".doc" || ext == ".xls"
+                    || ext == ".zip" || ext == ".rar")
                     continue;
             }
 
             // Check for already added urls
             std::vector<std::string>::iterator it;
-            it = std::find(uniqUrls.begin(), uniqUrls.end(), url);
+            it = std::find(uniqUrls.begin(), uniqUrls.end(), uri.toString());
             if (it == uniqUrls.end())
                 uniqUrls.push_back(url);
+
         } catch(Poco::Exception e) {
-            continue;
+            // @todo: log it
         }
     }
     return uniqUrls;
