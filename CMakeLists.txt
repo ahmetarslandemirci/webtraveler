@@ -17,4 +17,9 @@ set(TRAVELER_HEADERS_DIR ${PROJECT_SOURCE_DIR}/src/traveler)
 include_directories(${TRAVELER_INSTALL_INCLUDE_DIR})
 include_directories(${TRAVELER_HEADERS_DIR})
 
+add_definitions(${CONAN_DEFINES})
+link_directories(${CONAN_LIB_DIRS})
+include_directories(${CONAN_INCLUDE_DIRS})
+
 add_subdirectory(src)
+add_subdirectory(test)
