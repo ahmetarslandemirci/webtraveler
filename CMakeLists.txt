@@ -1,13 +1,20 @@
 cmake_minimum_required(VERSION 2.7)
 project(webtraveler CXX)
 
-include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 
 include_directories(${CONAN_INCLUDE_DIRS})
-add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0 -DNDEBUG)
-link_directories(${CONAN_LIB_DIRS})
 
-#set(CMAKE_BUILD_TYPE Release)
-add_executable(webtraveler main.cpp Utils.cpp Network.cpp)
-add_definitions(${CONAN_DEFINES})
-target_link_libraries(webtraveler ${CONAN_LIBS} )
+add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0 -DNDEBUG)
+
+
+set(TRAVELER_INSTALL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(TRAVELER_INSTALL_BIN_DIR ${PROJECT_SOURCE_DIR}/bin)
+set(TRAVELER_INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
+
+set(TRAVELER_HEADERS_DIR ${PROJECT_SOURCE_DIR}/src/traveler)
+
+include_directories(${TRAVELER_INSTALL_INCLUDE_DIR})
+include_directories(${TRAVELER_HEADERS_DIR})
+
+add_subdirectory(src)
