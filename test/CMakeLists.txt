@@ -10,4 +10,4 @@ add_executable(traveler_tests ${SOURCE_FILES})
 
 target_link_libraries(traveler_tests traveler ${CONAN_LIBS})
 
-install(TARGETS traveler_tests DESTINATION bin)
+install(TARGETS traveler_tests DESTINATION ${TRAVELER_INSTALL_BIN_DIR})
