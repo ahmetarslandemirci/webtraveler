@@ -1,23 +1,16 @@
 #include "Utils.h"
-#include <Poco/RegularExpression.h>
+#include "Network.h"
 
-#include <Poco/Net/HTTPRequest.h>
-#include <Poco/Net/HTTPClientSession.h>
-#include <Poco/Net/HTTPMessage.h>
-#include <Poco/Net/HTTPMessage.h>
-#include <Poco/Net/HTTPResponse.h>
-#include <Poco/Net/HTTPSClientSession.h>
-#include <Poco/Net/Context.h>
+#include <Poco/RegularExpression.h>
 #include <Poco/URI.h>
-#include <sstream>
+#include <Poco/Exception.h>
+
 #include <iostream>
 #include <algorithm>
-#include <Poco/TextConverter.h>
-#include <Poco/Latin1Encoding.h>
-#include <Poco/UTF8Encoding.h>
-#include <curlwrapper.h>
+#include <queue>
+#include <deque>
 
-// Regex ust contain one group ex: asd([0-9]+)dsa
+
 std::vector<std::string> Utils::findAll(const std::string &regex, const std::string &source) {
     Poco::RegularExpression expr(regex);
     std::vector<std::string> firstVector, foundedVector;
@@ -47,63 +40,6 @@ std::vector<std::string> Utils::findAll(const std::string &regex, const std::str
     return foundedVector;
 }
 
-std::string Utils::request(std::string &url, int maxRedirect) {
-    Poco::URI uri(url);
-    std::string path(uri.getPathAndQuery());
-    if (path.empty()) path = "/";
-    std::cout << "Request: " << url << std::endl;
-    Poco::Net::HTTPResponse response;
-    Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, path, Poco::Net::HTTPMessage::HTTP_1_1);
-
-    request.add("User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.1 Safari/605.1.15");
-    //User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.1 Safari/605.1.15
-    request.add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-    request.add("Accept-Language", "en-US,en;q=0.5");
-    request.setContentType("application/text");
-    request.setKeepAlive(true);
-
-    std::ostringstream ss;
-    if(uri.getScheme() == "http") {
-        Poco::Net::HTTPClientSession session(uri.getHost(), uri.getPort());
-        session.setTimeout(Poco::Timespan(60, 0));
-        try {
-            session.sendRequest(request);
-
-        } catch (Poco::Exception &e) {
-            std::cout << e.what() << std::endl;
-            return std::string();
-        }
-        std::istream& s = session.receiveResponse(response);
-        ss << s.rdbuf();
-        s.clear();
-    }
-    else if(uri.getScheme() == "https") {
-        Poco::Net::Context::Ptr pContext = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_NONE);
-        Poco::Net::HTTPSClientSession session(uri.getHost(), uri.getPort(), pContext );
-        session.setTimeout(Poco::Timespan(60, 0));
-
-        try {
-            session.sendRequest(request);
-
-        } catch (Poco::Exception &e) {
-            std::cout << e.what() << std::endl;
-            return std::string();
-        }
-        std::istream& s = session.receiveResponse(response);
-        ss << s.rdbuf();
-        s.clear();
-    }
-
-    if(response.getStatus() == 301) {
-        std::cout << "Loc:" << response.get("Location") << std::endl;
-        if(maxRedirect == 0) return "";
-        try {
-            url = response.get("Location");
-            return Utils::request(url, --maxRedirect);
-        } catch(Poco::Exception e) {return "";}
-    }
-    return ss.str();
-}
 
 std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList, const std::string &baseUrl) {
     Poco::URI baseUri(baseUrl);
@@ -124,9 +60,6 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
                     url = baseUrl + url;
             }
         }
-        else {
-
-        }
         else if( (url.at(0) != '/' && url.size()<4) || (url.at(0) != '/' && url.size()>=4 && url.substr(0,4) != "http")) {
             if(baseUrl.at(baseUrl.size()-1) == '/')
                 url = baseUrl + url;
@@ -134,7 +67,7 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
                 url = baseUrl + '/' + url;
         }
         // tel: callto: mailto: gibi protocollerin parse edilmesi problem yaratıryor
-        //std::cout << " fixUrls: " << url << std::endl;
+        std::cout << " fixUrls: " << url << std::endl;
         try {
             Poco::URI uri(url);
 
@@ -167,6 +100,7 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
     return uniqUrls;
 }
 
+
 void Utils::searchInPages(const std::string &url, const std::string &regex, std::vector<std::string> &data, unsigned long limit) {
     std::deque<std::string> queue,visited;
     queue.push_back(url);
@@ -179,7 +113,7 @@ void Utils::searchInPages(const std::string &url, const std::string &regex, std:
         std::string url = queue.front();
         queue.pop_front();
 
-        std::string source = Utils::request(url);
+        std::string source = Network::request(url);
 
         // Search for regex data
         std::vector<std::string> founded = Utils::findAll(regex, source);
@@ -206,4 +140,3 @@ void Utils::searchInPages(const std::string &url, const std::string &regex, std:
     std::cout << "\n # Scanned " << visited.size() << " in " << baseUrl << std::endl;
 }
 
-//void Utils::bfs(std::queue<std::string> &queue,)
