@@ -68,3 +68,34 @@ TEST_F(UtilsTest, CleanScheme_DifferentSchemes_Test) {
     url = Utils::cleanScheme(test_url);
     ASSERT_STREQ(url.c_str(), "");
 }
+
+TEST_F(UtilsTest, NormalizeUrls_UrlTest_Test) {
+    std::string base_url = "http://example.com/";
+
+    std::vector<std::string> urls;
+    urls.push_back("http://example.com/index.html");
+    urls.push_back("http://example.com/contact.html#test");
+    urls.push_back("pages.html");
+    urls.push_back("//example.com/main.html");
+    urls.push_back("index.php?asd=test");
+
+    std::vector<std::string> expected_urls;
+    expected_urls.push_back("http://example.com/index.html");
+    expected_urls.push_back("http://example.com/contact.html");
+    expected_urls.push_back("http://example.com/pages.html");
+    expected_urls.push_back("http://example.com/main.html");
+    expected_urls.push_back("http://example.com/index.php?asd=test");
+
+    std::vector<std::string> normalized_urls = Utils::normalizeUrlList(urls, base_url);
+
+    for( auto it = expected_urls.begin(); it != expected_urls.end(); it++) {
+        bool founded = false;
+        for( auto it2 = normalized_urls.begin(); it2 != normalized_urls.end(); it2++) {
+            if( *it == *it2 )
+                founded = true;
+        }
+        if(founded == false)
+            ASSERT_EQ(1, founded);
+    }
+
+}
