@@ -4,7 +4,7 @@ project(traveler_tests)
 
 include_directories(${TRAVELER_HEADERS_DIR})
 
-set(SOURCE_FILES test_main.cpp src/network_tests.cpp)
+set(SOURCE_FILES test_main.cpp src/network_tests.cpp src/utils_tests.cpp)
 
 add_executable(traveler_tests ${SOURCE_FILES})
 

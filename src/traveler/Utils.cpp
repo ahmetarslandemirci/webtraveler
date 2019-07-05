@@ -41,15 +41,18 @@ std::vector<std::string> Utils::findAll(const std::string &regex, const std::str
 }
 
 
-std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList, const std::string &baseUrl) {
+std::vector<std::string> Utils::normalizeUrlList(const std::vector<std::string> &list, const std::string &baseUrl) {
     Poco::URI baseUri(baseUrl);
+
     std::string base = baseUri.getHost();
     std::vector<std::string> uniqUrls;
 
-    for(size_t i=0;i<urlList.size();i++) {
-        std::string url = urlList.at(i);
+    for(int i=0;i<list.size();i++) {
+        std::string url = list.at(i);
+
+
         if(url.substr(0,4) == "http") {
-            if (url == "#" || (url.size() >= 11 && url.substr(0, 11) == "javascript:")) {
+            if ( (url.size() >= 11 && url.substr(0, 11) == "javascript:")) {
                 continue;
             } else if (url.size() >= 2 && url.at(0) == '/' && url.at(1) == '/') {
                 // write http or https
@@ -71,13 +74,9 @@ std::vector<std::string> Utils::fixUrls(const std::vector<std::string> &urlList,
         try {
             Poco::URI uri(url);
 
-
             // skip for different hosts
-            if (baseUri.getHost() != uri.getHost() && "www."+baseUri.getHost() != uri.getHost() ) {
-                //std::cout << baseUri.getHost() << " - " << uri.getHost()<< std::endl;
-                continue;
-            }
 
+            // @todo: this must be replaced white list. for example you can check response headers for content type: text
             // Check for file extensions
             unsigned long lastDot = uri.getPath().find_last_of('.');
             if (lastDot != std::string::npos) {
@@ -125,7 +124,7 @@ void Utils::searchInPages(const std::string &url, const std::string &regex, std:
         }
 
         std::string hrefRegex   = "<a.+href[ ]*=[ ]*[\"'<>]?([^\"';<>]+)";
-        std::vector<std::string> links = Utils::fixUrls(Utils::findAll(hrefRegex, source),baseUrl);
+        std::vector<std::string> links = Utils::normalizeUrlList(Utils::findAll(hrefRegex, source),baseUrl);
         visited.push_back(url);
         //std::cout << "Lnk size: " << links.size() << std::endl;
         for(int i = 0; i < links.size() && queue.size()+visited.size() <= limit ;i++) {
@@ -140,3 +139,22 @@ void Utils::searchInPages(const std::string &url, const std::string &regex, std:
     std::cout << "\n # Scanned " << visited.size() << " in " << baseUrl << std::endl;
 }
 
+std::string Utils::cleanAnchor(const std::string &url) {
+    int pos = url.find("#");
+    if( pos != std::string::npos )
+        return url.substr(0, pos);
+    return url;
+}
+
+std::string Utils::cleanProtocolShortcut(const std::string &url, const std::string &protocol) {
+    if(url.substr(0, 2) == "//")
+        return protocol + ":" + url;
+    return url;
+}
+
+std::string Utils::concatHostPath(const std::string &host, const std::string &path) {
+    if(host.at(host.size()-1) == '/')
+        return host + path;
+    else
+        return host + '/' + path;
+}
