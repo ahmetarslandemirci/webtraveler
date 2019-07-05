@@ -63,14 +63,9 @@ std::vector<std::string> Utils::normalizeUrlList(const std::vector<std::string> 
                     url = baseUrl + url;
             }
         }
-        else if( (url.at(0) != '/' && url.size()<4) || (url.at(0) != '/' && url.size()>=4 && url.substr(0,4) != "http")) {
-            if(baseUrl.at(baseUrl.size()-1) == '/')
-                url = baseUrl + url;
-            else
-                url = baseUrl + '/' + url;
-        }
+
         // tel: callto: mailto: gibi protocollerin parse edilmesi problem yaratıryor
-        std::cout << " fixUrls: " << url << std::endl;
+
         try {
             Poco::URI uri(url);
 
@@ -155,6 +150,12 @@ std::string Utils::cleanProtocolShortcut(const std::string &url, const std::stri
 std::string Utils::concatHostPath(const std::string &host, const std::string &path) {
     if(host.at(host.size()-1) == '/')
         return host + path;
-    else
-        return host + '/' + path;
+    return host + '/' + path;
+}
+
+std::string Utils::cleanScheme(const std::string &url) {
+    if(url.size()>4 && url.substr(0,4) != "http" && url.find(":") != std::string::npos)
+        return "";
+
+    return url;
 }

@@ -54,3 +54,17 @@ TEST_F(UtilsTest, CleanProtocolShortcut_CleanUrl_Test) {
     std::string expected_url = "http:" + test_url;
     ASSERT_STREQ(url.c_str(), expected_url.c_str());
 }
+
+TEST_F(UtilsTest, CleanScheme_DifferentSchemes_Test) {
+    test_url = "tel:0123456789";
+    std::string url = Utils::cleanScheme(test_url);
+    ASSERT_STREQ(url.c_str(), "");
+
+    test_url = "javascript:321321321321";
+    url = Utils::cleanScheme(test_url);
+    ASSERT_STREQ(url.c_str(), "");
+
+    test_url = "a:a35sd4as5d4";
+    url = Utils::cleanScheme(test_url);
+    ASSERT_STREQ(url.c_str(), "");
+}

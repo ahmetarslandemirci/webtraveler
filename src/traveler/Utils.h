@@ -17,6 +17,8 @@ public:
     static std::string concatHostPath(const std::string &, const std::string &);
 
     static std::string cleanProtocolShortcut(const std::string &url, const std::string &protocol = "http");
+
+    static std::string cleanScheme(const std::string &url);
 };
 
 
