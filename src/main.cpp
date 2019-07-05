@@ -11,6 +11,7 @@
 #include <Poco/ThreadPool.h>
 #include <Poco/File.h>
 #include <fstream>
+#include <Network.h>
 
 
 class TargetUrl: public Poco::Notification {
@@ -23,31 +24,32 @@ class Worker : public Poco::Runnable {
 public:
     explicit Worker(Poco::NotificationQueue &queue) : _queue(queue) {}
     void run() {
-        Poco::Notification::Ptr notification = _queue.waitDequeueNotification();
+        Poco::Notification::Ptr notification = _queue.dequeueNotification();
         std::string emailRegex  = "([\\w-]+(?:\\.[\\w-]+)*@(?:[\\w-]+\\.)+[a-zA-Z]{2,7})";
-        while( true ) {
-            std::cout << _queue.size() << std::endl;
+        while( notification ) {
             TargetUrl *target = dynamic_cast<TargetUrl*>(notification.get());
             if(target) {
                 std::vector<std::string> mails;
-                std::cout << "Current Url: " << target->url << std::endl;
-                try {
-                    Utils::searchInPages(target->url, emailRegex, mails, 20000);
-                } catch (Poco::Exception &e) {
-                    Poco::Logger::get("errors").error(target->url + " -- " + e.what()+"--"+e.displayText());
-                }
-                catch( std::exception &e) {
+                std::string url = Network::get_redirected_url(target->url);
+                if( !url.empty()) {
+                    std::cout << "Current Url: " << url << std::endl;
+                    try {
+                        Utils::searchInPages(url, emailRegex, mails, 10);
+                    } catch (Poco::Exception &e) {
+                        Poco::Logger::get("errors").error(url + " -- " + e.what() + "--" + e.displayText());
+                    }
+                    catch (std::exception &e) {
+                    }
 
+                    for (int i = 0; i < mails.size(); ++i) {
+                        std::cout << mails.at(i) << std::endl;
+                        Poco::Logger::get("Emails").information(mails.at(i));
+                    }
                 }
-                for (int i = 0; i < mails.size(); ++i) {
-                    std::cout << mails.at(i) << std::endl;
-                    Poco::Logger::get("Emails").information(mails.at(i));
-                }
-
             }
             notification->release();
 
-            notification = _queue.waitDequeueNotification();
+            notification = _queue.dequeueNotification();
         }
     }
 private:
@@ -65,9 +67,6 @@ int main(int argc, char *argv[]) {
     }
     std::string websiteFilename = argv[1];
     std::string mailsFilename = argv[2];
-
-
-    //Poco::Net::initializeSSL();
 
     // Create logger channel for writing emails
     Poco::SimpleFileChannel *simpleFileChannel = new Poco::SimpleFileChannel(mailsFilename);
@@ -109,6 +108,5 @@ int main(int argc, char *argv[]) {
     pool.joinAll();
 
 
-    //Poco::Net::uninitializeSSL();
     return 0;
 }
