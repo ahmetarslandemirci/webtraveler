@@ -55,9 +55,15 @@ std::vector<std::string> Utils::normalizeUrlList(const std::vector<std::string> 
             continue;
 
         url = cleanProtocolShortcut(url, baseUri.getScheme());
-
+        if( url.substr(0,4) != "http")
+            url = concatHostPath( baseUrl, url);
+        //std::cout << "=> " << url << std::endl;
         try {
             Poco::URI uri(url);
+//            std::cout << "Base Host: " << baseUri.getHost() << std::endl;
+//            std::cout << "Host: " << uri.getHost() << std::endl;
+
+            if(uri.getHost() != baseUri.getHost()) continue;
 
             // @todo: this must be replaced white list. for example you can check response headers for content type: text
             // Check for file extensions
@@ -71,11 +77,12 @@ std::vector<std::string> Utils::normalizeUrlList(const std::vector<std::string> 
                     continue;
             }
 
-            // Check for already added urls
+            // Check alread added urls and push to list
             std::vector<std::string>::iterator it;
-            it = std::find(uniqUrls.begin(), uniqUrls.end(), uri.toString());
+            it = std::find(uniqUrls.begin(), uniqUrls.end(), url);
             if (it == uniqUrls.end())
-                uniqUrls.push_back(url);
+                uniqUrls.push_back( url );
+
 
         } catch(Poco::Exception e) {
             // @todo: log it
@@ -105,7 +112,6 @@ void Utils::searchInPages(const std::string &url, const std::string &regex, std:
             it = std::find(data.begin(),data.end(),founded.at(i));
             if(it == data.end())
                 data.push_back(founded.at(i));
-
         }
 
         std::string hrefRegex   = "<a.+href[ ]*=[ ]*[\"'<>]?([^\"';<>]+)";

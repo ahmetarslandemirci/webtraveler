@@ -97,5 +97,4 @@ TEST_F(UtilsTest, NormalizeUrls_UrlTest_Test) {
         if(founded == false)
             ASSERT_EQ(1, founded);
     }
-
 }
