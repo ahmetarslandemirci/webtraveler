@@ -44,7 +44,6 @@ std::string Network::get_redirected_url(const std::string &url) {
             curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &url);
             if(url) {
                 redirected_url = url;
-                free(url);
             }
         }
         curl_easy_cleanup(curl);
