@@ -12,9 +12,6 @@
 #include <Poco/File.h>
 #include <fstream>
 
-// if llinux
-#include <netdb.h>
-
 
 class TargetUrl: public Poco::Notification {
 public :
@@ -28,14 +25,14 @@ public:
     void run() {
         Poco::Notification::Ptr notification = _queue.waitDequeueNotification();
         std::string emailRegex  = "([\\w-]+(?:\\.[\\w-]+)*@(?:[\\w-]+\\.)+[a-zA-Z]{2,7})";
-        while(notification) {
+        while( true ) {
             std::cout << _queue.size() << std::endl;
             TargetUrl *target = dynamic_cast<TargetUrl*>(notification.get());
             if(target) {
                 std::vector<std::string> mails;
+                std::cout << "Current Url: " << target->url << std::endl;
                 try {
-                    if( Utils::request(target->url) != "")
-                        Utils::searchInPages(target->url, emailRegex, mails, 20000);
+                    Utils::searchInPages(target->url, emailRegex, mails, 20000);
                 } catch (Poco::Exception &e) {
                     Poco::Logger::get("errors").error(target->url + " -- " + e.what()+"--"+e.displayText());
                 }
@@ -43,12 +40,12 @@ public:
 
                 }
                 for (int i = 0; i < mails.size(); ++i) {
+                    std::cout << mails.at(i) << std::endl;
                     Poco::Logger::get("Emails").information(mails.at(i));
                 }
 
             }
             notification->release();
-            if(_queue.empty()) break;
 
             notification = _queue.waitDequeueNotification();
         }
@@ -69,17 +66,7 @@ int main(int argc, char *argv[]) {
     std::string websiteFilename = argv[1];
     std::string mailsFilename = argv[2];
 
-    // test code
-    hostent *host = NULL;
-    host = gethostbyname("www.ASDASDKNAKSDNKJNnaver.com");
-    if(host == NULL) {
-        std::cout << "HOST is null " << std::endl;
-    }
-    else {
-        std::cout << "host is ok" << std::endl;
-    }
 
-    return 0;
     //Poco::Net::initializeSSL();
 
     // Create logger channel for writing emails
@@ -106,11 +93,10 @@ int main(int argc, char *argv[]) {
     while (std::getline(file, str))
         queue.enqueueNotification(new TargetUrl(str));
 
-    std::cout << "Queue size: " << queue.size() << std::endl;
-
     for(int i=0;i<THREAD_SIZE;++i) {
         workers.push_back(new Worker(queue));
     }
+
     for(int i=0;i<THREAD_SIZE;++i) {
         pool.start(*workers.at(i));
     }
