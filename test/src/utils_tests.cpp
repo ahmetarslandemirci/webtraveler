@@ -88,9 +88,9 @@ TEST_F(UtilsTest, NormalizeUrls_UrlTest_Test) {
 
     std::vector<std::string> normalized_urls = Utils::normalizeUrlList(urls, base_url);
 
-    for( auto it = expected_urls.begin(); it != expected_urls.end(); it++) {
+    for( std::vector<std::string>::iterator it = expected_urls.begin(); it != expected_urls.end(); it++) {
         bool founded = false;
-        for( auto it2 = normalized_urls.begin(); it2 != normalized_urls.end(); it2++) {
+        for( std::vector<std::string>::iterator it2 = normalized_urls.begin(); it2 != normalized_urls.end(); it2++) {
             if( *it == *it2 )
                 founded = true;
         }
