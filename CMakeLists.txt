@@ -21,5 +21,17 @@ add_definitions(${CONAN_DEFINES})
 link_directories(${CONAN_LIB_DIRS})
 include_directories(${CONAN_INCLUDE_DIRS})
 
+IF (USE_MXE)
+    IF(DEFINED ENV{MXE_LIB_DIRS})
+        set(TRAVELER_LIBS "-liphlpapi")
+        link_directories("$ENV{MXE_LIB_DIRS}")
+    ELSE()
+        message(FATAL_ERROR "Please set env variable for mxe lib dirs which the env name is MXE_LIB_DIRS")
+    ENDIF()
+ELSE()
+    set(TRAVELER_LIBS "")
+ENDIF()
+
+
 add_subdirectory(src)
 add_subdirectory(test)
