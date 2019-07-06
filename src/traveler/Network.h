@@ -13,7 +13,7 @@ public:
 
     static std::string get_redirected_url(const std::string &url);
 private:
-    static uint write_cb(char *in, uint size, uint nmemb, std::string *out);
+    static size_t write_cb(char *in, size_t size, size_t nmemb, std::string *out);
 };
 
 

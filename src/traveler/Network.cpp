@@ -3,7 +3,7 @@
 #include <iostream>
 
 
-uint Network::write_cb(char *in, uint size, uint nmemb, std::string *out) {
+size_t Network::write_cb(char *in, size_t size, size_t nmemb, std::string *out) {
     out->append(in);
     return size * nmemb;
 }
