@@ -47,8 +47,6 @@ public:
                     }
                 }
             }
-            notification->release();
-
             notification = _queue.dequeueNotification();
         }
     }
